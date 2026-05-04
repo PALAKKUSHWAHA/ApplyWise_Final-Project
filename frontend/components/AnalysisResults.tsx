@@ -65,6 +65,15 @@ export default function AnalysisResults({ result, className = '' }: AnalysisResu
     return 'stroke-red-500';
   };
 
+  const getMatchStatus = (score: number) => {
+    if (score >= 85) return { text: 'STRONG FIT', color: 'text-green-600', bg: 'bg-green-50' };
+    if (score >= 70) return { text: 'GOOD FIT', color: 'text-blue-600', bg: 'bg-blue-50' };
+    if (score >= 50) return { text: 'POTENTIAL', color: 'text-yellow-600', bg: 'bg-yellow-50' };
+    return { text: 'NEEDS WORK', color: 'text-red-600', bg: 'bg-red-50' };
+  };
+
+  const matchStatus = getMatchStatus(result.overall_score || 0);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -126,15 +135,28 @@ export default function AnalysisResults({ result, className = '' }: AnalysisResu
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className={`text-3xl font-bold ${getScoreColor(result.overall_score || 0).split(' ')[0]}`}>
+              <div className={`text-4xl font-bold ${getScoreColor(result.overall_score || 0).split(' ')[0]}`}>
                 {(result.overall_score || 0).toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-600">Overall Match</div>
+              <div className="text-xs text-gray-600 mt-1">Match Score</div>
             </div>
           </div>
         </div>
         
-        <p className="text-lg text-gray-600 mt-6">{result.detailed_analysis?.overall_assessment || 'No assessment available'}</p>
+        {/* Match Status Badge */}
+        <div className={`mt-6 px-4 py-3 rounded-lg inline-block ${matchStatus.bg}`}>
+          <p className={`text-lg font-bold ${matchStatus.color}`}>{matchStatus.text}</p>
+        </div>
+        
+        <p className="text-base text-gray-700 mt-6 leading-relaxed">
+          {result.overall_score >= 85 
+            ? "🎉 Excellent match! You should definitely apply for this position."
+            : result.overall_score >= 70
+            ? "✅ Good match! Your skills align well with the role requirements."
+            : result.overall_score >= 50
+            ? "⚡ There's potential, but you'll need to develop some key skills."
+            : "💡 This role requires significant skill development. Consider more junior positions."}
+        </p>
       </motion.div>
 
       <motion.div variants={itemVariants} className="card p-6">
@@ -150,26 +172,29 @@ export default function AnalysisResults({ result, className = '' }: AnalysisResu
               <motion.div
                 key={key}
                 variants={itemVariants}
-                className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors duration-200"
+                className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 hover:shadow-md transition-all duration-200"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getScoreColor(percentage)}`}>
-                      <Icon className="w-5 h-5" />
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold ${getScoreColor(percentage)}`}>
+                      <Icon className="w-6 h-6" />
                     </div>
-                    <span className="font-medium text-gray-900">{name}</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">{name}</p>
+                      <p className="text-xs text-gray-500">Score</p>
+                    </div>
                   </div>
-                  <span className={`text-lg font-bold ${getScoreColor(percentage).split(' ')[0]}`}>
+                  <span className={`text-2xl font-bold ${getScoreColor(percentage).split(' ')[0]}`}>
                     {percentage}%
                   </span>
                 </div>
                 
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-300 rounded-full h-3">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
                     transition={{ duration: 1, delay: 0.5 }}
-                    className={`h-2 rounded-full ${
+                    className={`h-3 rounded-full ${
                       percentage >= 75 ? 'bg-green-500' : 
                       percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
@@ -187,34 +212,38 @@ export default function AnalysisResults({ result, className = '' }: AnalysisResu
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900">
-              Matched Skills ({(result.matched_skills || []).length})
-            </h3>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Matched Skills ({(result.matched_skills || []).filter(s => s.length > 1).length})
+              </h3>
+              <p className="text-sm text-gray-500">Skills you already have</p>
+            </div>
           </div>
           
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {(result.matched_skills || []).slice(0, 20).map((skill, index) => (
+            {(result.matched_skills || [])
+              .filter(s => s.length > 1) // Filter out single letters
+              .slice(0, 20)
+              .map((skill, index) => (
               <motion.div
                 key={skill}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ x: 5, scale: 1.02 }}
-                className="flex items-center space-x-3 py-2 px-3 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors duration-200"
+                className="flex items-center space-x-3 py-2 px-4 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors duration-200 border border-green-200"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: index * 0.1 }}
-                >
-                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                </motion.div>
-                <span className="text-gray-900">{skill}</span>
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <span className="text-gray-900 font-medium">{skill}</span>
               </motion.div>
             ))}
-            {(result.matched_skills || []).length > 20 && (
+            {(result.matched_skills || []).filter(s => s.length > 1).length > 20 && (
               <p className="text-sm text-gray-500 text-center py-2">
-                +{(result.matched_skills || []).length - 20} more skills
+                +{(result.matched_skills || []).filter(s => s.length > 1).length - 20} more skills
               </p>
+            )}
+            {(result.matched_skills || []).filter(s => s.length > 1).length === 0 && (
+              <p className="text-sm text-gray-600 py-4 text-center">No matching skills detected</p>
             )}
           </div>
         </motion.div>
@@ -224,34 +253,38 @@ export default function AnalysisResults({ result, className = '' }: AnalysisResu
             <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
               <XCircle className="w-6 h-6 text-red-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900">
-              Missing Skills ({(result.missing_skills || []).length})
-            </h3>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Missing Skills ({(result.missing_skills || []).filter(s => s.length > 1).length})
+              </h3>
+              <p className="text-sm text-gray-500">Skills you need to develop</p>
+            </div>
           </div>
           
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {(result.missing_skills || []).slice(0, 20).map((skill, index) => (
+            {(result.missing_skills || [])
+              .filter(s => s.length > 1) // Filter out single letters
+              .slice(0, 20)
+              .map((skill, index) => (
               <motion.div
                 key={skill}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ x: -5, scale: 1.02 }}
-                className="flex items-center space-x-3 py-2 px-3 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors duration-200"
+                className="flex items-center space-x-3 py-2 px-4 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors duration-200 border border-red-200"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: index * 0.1 }}
-                >
-                  <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                </motion.div>
-                <span className="text-gray-900">{skill}</span>
+                <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <span className="text-gray-900 font-medium">{skill}</span>
               </motion.div>
             ))}
-            {(result.missing_skills || []).length > 20 && (
+            {(result.missing_skills || []).filter(s => s.length > 1).length > 20 && (
               <p className="text-sm text-gray-500 text-center py-2">
-                +{(result.missing_skills || []).length - 20} more skills
+                +{(result.missing_skills || []).filter(s => s.length > 1).length - 20} more skills
               </p>
+            )}
+            {(result.missing_skills || []).filter(s => s.length > 1).length === 0 && (
+              <p className="text-sm text-gray-600 py-4 text-center">✅ No missing skills! You have them all.</p>
             )}
           </div>
         </motion.div>

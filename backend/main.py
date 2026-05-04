@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import uvicorn
 import asyncio
 import aiofiles
@@ -10,10 +11,13 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
+import hashlib
+from functools import lru_cache
 
 from text_extractor import TextExtractor
 from text_preprocessor import TextPreprocessor
 from similarity_engine import SimilarityEngine
+from ai_assistant_routes import router as ai_router
 
 
 logging.basicConfig(
@@ -47,6 +51,8 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Add GZip compression for responses (minimum 1000 bytes)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,11 +62,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include AI Assistant router
+app.include_router(ai_router)
+
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("results", exist_ok=True)
 
 
+# Simple LRU cache for similarity results (max 100 results)
+similarity_cache: Dict[str, Any] = {}
+MAX_CACHE_SIZE = 100
+
+
+def _generate_cache_key(resume_text: str, job_text: str) -> str:
+    """Generate a cache key from resume and job description"""
+    combined = f"{resume_text[:500]}_{job_text[:500]}"
+    return hashlib.md5(combined.encode()).hexdigest()
 
 
 text_extractor = TextExtractor()
@@ -108,8 +126,8 @@ class ResuMatchAnalyzer:
 
             logger.info("Calculating similarity...")
             similarity_result = self.similarity_engine.calculate_similarity(
-                resume_features,
-                job_features
+                resume_processed,
+                job_processed
             )
 
             analysis_result = {

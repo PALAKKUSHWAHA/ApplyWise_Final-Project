@@ -35,4 +35,18 @@ aiofiles==23.2.1
 # Production server
 gunicorn==21.2.0
 
+# LLM and GenAI Integration
+# For local models via Ollama (recommended - no setup needed, just add requests):
+requests>=2.31.0
+
+# For OpenAI API (optional):
+openai>=1.3.0
+
+# For Anthropic API (optional):
+anthropic>=0.7.0
+
+# For Hugging Face transformers (optional, requires GPU for better performance):
+# transformers>=4.36.0
+# torch>=2.0.0
+
 # Deployment timestamp: 2025-07-08

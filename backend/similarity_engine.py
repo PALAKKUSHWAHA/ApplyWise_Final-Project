@@ -1,7 +1,8 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-from typing import Dict, List, Tuple, Any, Optional
+from functools import lru_cache
+from typing import Dict, List, Tuple, Any, Optional, Set
 import logging
 import re
 import warnings
@@ -13,14 +14,39 @@ logger = logging.getLogger(__name__)
 class SimilarityEngine:
     def __init__(self, model_name: str = "tfidf"):
         self.model_name = model_name
-        self.tfidf_vectorizer = TfidfVectorizer(max_features=5000, stop_words='english', ngram_range=(1, 2))
+        # Initialize vectorizer once and reuse - don't refit on every request
+        self.tfidf_vectorizer = TfidfVectorizer(
+            max_features=5000, 
+            stop_words='english', 
+            ngram_range=(1, 2),
+            min_df=1,
+            sublinear_tf=True
+        )
+        self._vectorizer_fitted = False
+        self._fit_corpus = []
         
+        # Improved weights based on importance
         self.weights = {
-            'semantic_similarity': 0.25,
-            'skill_match': 0.40,
+            'semantic_similarity': 0.20,
+            'skill_match': 0.45,
             'experience_match': 0.15,
-            'education_match': 0.05,
-            'keyword_match': 0.15
+            'education_match': 0.10,
+            'keyword_match': 0.10
+        }
+        
+        # Skill synonyms for better matching (e.g., React = ReactJS)
+        self.skill_synonyms = {
+            'react': ['reactjs', 'react.js'],
+            'node.js': ['nodejs', 'node', 'node js'],
+            'c++': ['cpp', 'c plus plus'],
+            'c#': ['csharp', 'c sharp'],
+            'javascript': ['js', 'ecmascript'],
+            'python': ['py', 'python3', 'python 3'],
+            'typescript': ['ts', 'typescripted'],
+            'sql': ['mysql', 'postgresql', 'sql server'],
+            'aws': ['amazon web services', 'amazon aws'],
+            'machine learning': ['ml', 'deep learning'],
+            'artificial intelligence': ['ai', 'ai/ml', 'ai-ml']
         }
         
         # Predefined skill sets for better matching
@@ -33,9 +59,26 @@ class SimilarityEngine:
             'tools': ['git', 'linux', 'bash', 'vim', 'vscode', 'intellij', 'eclipse', 'postman']
         }
         
-        logger.info("Initialized lightweight similarity engine with TF-IDF")
+        # Build reverse skill lookup for synonyms
+        self._build_skill_lookup()
+        
+        logger.info("Initialized optimized similarity engine with smart caching")
+    
+    def _build_skill_lookup(self):
+        """Build a lookup dictionary for quick skill matching with synonyms"""
+        self.skill_lookup = {}
+        
+        # Add all skills and their synonyms to lookup
+        for category, skill_list in self.skill_categories.items():
+            for skill in skill_list:
+                self.skill_lookup[skill.lower()] = skill
+                # Add synonyms if they exist
+                if skill.lower() in self.skill_synonyms:
+                    for synonym in self.skill_synonyms[skill.lower()]:
+                        self.skill_lookup[synonym.lower()] = skill
     
     def calculate_similarity(self, resume_data: Dict[str, Any], job_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate similarity between resume and job description with improved accuracy"""
         try:
             result = {
                 'overall_score': 0.0,
@@ -46,6 +89,7 @@ class SimilarityEngine:
                 'missing_skills': []
             }
             
+            # Calculate all component scores
             semantic_score = self._calculate_semantic_similarity(resume_data, job_data)
             result['component_scores']['semantic_similarity'] = semantic_score
             
@@ -63,15 +107,16 @@ class SimilarityEngine:
             keyword_score = self._calculate_keyword_match(resume_data, job_data)
             result['component_scores']['keyword_match'] = keyword_score
             
-            overall_score = 0
-            for component, score in result['component_scores'].items():
-                weight = self.weights.get(component, 0)
-                overall_score += score * weight
-                
-            boosted_score = overall_score ** 0.75
-            final_score = min(100.0, boosted_score * 100 * 1.15)
+            # Calculate weighted overall score (no arbitrary boosting)
+            overall_score = sum(
+                result['component_scores'][component] * weight
+                for component, weight in self.weights.items()
+            )
             
-            result['overall_score'] = round(final_score, 2)
+            # Convert to percentage (0-100) with proper normalization
+            final_score = overall_score * 100
+            result['overall_score'] = round(min(100.0, max(0.0, final_score)), 2)
+            
             result['detailed_analysis'] = self._generate_analysis(result)
             result['recommendations'] = self._generate_recommendations(result)
             
@@ -88,23 +133,40 @@ class SimilarityEngine:
                 'missing_skills': []
             }
     
-    def _get_semantic_embeddings(self, texts: List[str]) -> np.ndarray:
-        """Generate TF-IDF based embeddings as a lightweight alternative to transformers"""
+    def _get_semantic_embeddings(self, resume_text: str, job_text: str) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate TF-IDF embeddings with proper caching strategy"""
         try:
-            if len(texts) == 1:
-                # For single text, we need to fit and transform
-                embeddings = self.tfidf_vectorizer.fit_transform(texts)
-            else:
-                # For multiple texts, fit on all and transform all
-                embeddings = self.tfidf_vectorizer.fit_transform(texts)
+            # Ensure texts are valid strings
+            resume_text = str(resume_text).strip() if resume_text else ""
+            job_text = str(job_text).strip() if job_text else ""
             
-            return embeddings.toarray()
+            # Skip if texts are too short
+            if len(resume_text) < 5 or len(job_text) < 5:
+                logger.warning(f"Text too short for embedding: resume={len(resume_text)}, job={len(job_text)}")
+                return np.zeros(100), np.zeros(100)
+            
+            # Combine all texts for vocabulary building (done once)
+            combined_texts = [resume_text, job_text]
+            
+            # Fit vectorizer if not already fitted
+            if not self._vectorizer_fitted or combined_texts != self._fit_corpus:
+                self.tfidf_vectorizer.fit(combined_texts)
+                self._vectorizer_fitted = True
+                self._fit_corpus = combined_texts
+            
+            # Transform texts using fitted vectorizer
+            embeddings = self.tfidf_vectorizer.transform(combined_texts)
+            # Convert sparse matrix to dense for similarity calculation
+            resume_vec = embeddings[0].toarray().flatten()
+            job_vec = embeddings[1].toarray().flatten()
+            return resume_vec, job_vec
         except Exception as e:
             logger.error(f"TF-IDF embedding generation failed: {str(e)}")
-            # Return dummy embeddings if TF-IDF fails
-            return np.random.rand(len(texts), 100)
+            # Return zero vectors if TF-IDF fails
+            return np.zeros(100), np.zeros(100)
     
     def _calculate_semantic_similarity(self, resume_data: Dict[str, Any], job_data: Dict[str, Any]) -> float:
+        """Calculate semantic similarity with better normalization"""
         try:
             resume_text = self._extract_text_from_data(resume_data)
             job_text = self._extract_text_from_data(job_data)
@@ -112,15 +174,19 @@ class SimilarityEngine:
             if not resume_text or not job_text:
                 return 0.0
             
-            embeddings = self._get_semantic_embeddings([resume_text, job_text])
-            similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+            resume_vec, job_vec = self._get_semantic_embeddings(resume_text, job_text)
             
-            return max(0.0, min(1.0, similarity))
+            # Compute cosine similarity
+            similarity = cosine_similarity([resume_vec], [job_vec])[0][0]
+            
+            # Normalize to [0, 1]
+            return max(0.0, min(1.0, float(similarity)))
         except Exception as e:
             logger.error(f"Semantic similarity calculation failed: {str(e)}")
             return 0.0
     
     def _calculate_skill_match(self, resume_data: Dict[str, Any], job_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate skill match with smart synonym matching"""
         try:
             resume_skills = self._extract_skills(resume_data)
             job_skills = self._extract_skills(job_data)
@@ -129,17 +195,45 @@ class SimilarityEngine:
                 return {'score': 0.0, 'matched': [], 'missing': []}
             
             matched_skills = []
-            for skill in job_skills:
-                if any(skill.lower() in resume_skill.lower() or resume_skill.lower() in skill.lower() 
-                      for resume_skill in resume_skills):
-                    matched_skills.append(skill)
+            matched_set = set()
             
-            missing_skills = [skill for skill in job_skills if skill not in matched_skills]
+            for job_skill in job_skills:
+                job_skill_lower = job_skill.lower()
+                
+                # Check direct matches in resume skills
+                for resume_skill in resume_skills:
+                    resume_skill_lower = resume_skill.lower()
+                    
+                    # Direct match
+                    if job_skill_lower == resume_skill_lower:
+                        matched_skills.append(job_skill)
+                        matched_set.add(job_skill_lower)
+                        break
+                    
+                    # Check if either is substring of other (but with minimum length check)
+                    if (len(resume_skill_lower) > 3 and len(job_skill_lower) > 3):
+                        if job_skill_lower in resume_skill_lower or resume_skill_lower in job_skill_lower:
+                            matched_skills.append(job_skill)
+                            matched_set.add(job_skill_lower)
+                            break
+                    
+                    # Check synonyms
+                    for base_skill, synonyms in self.skill_synonyms.items():
+                        if job_skill_lower == base_skill or job_skill_lower in synonyms:
+                            for syn in [base_skill] + synonyms:
+                                if syn in resume_skill_lower or resume_skill_lower == syn:
+                                    matched_skills.append(job_skill)
+                                    matched_set.add(job_skill_lower)
+                                    break
+            
+            # Remove duplicates while preserving order
+            matched_skills = list(dict.fromkeys(matched_skills))
+            missing_skills = [skill for skill in job_skills if skill.lower() not in matched_set]
             
             score = len(matched_skills) / len(job_skills) if job_skills else 0.0
             
             return {
-                'score': score,
+                'score': min(1.0, score),
                 'matched': matched_skills,
                 'missing': missing_skills
             }
@@ -189,67 +283,93 @@ class SimilarityEngine:
             return 0.0
     
     def _calculate_keyword_match(self, resume_data: Dict[str, Any], job_data: Dict[str, Any]) -> float:
+        """Calculate keyword match using TF-IDF importance, not just frequency"""
         try:
             resume_text = self._extract_text_from_data(resume_data).lower()
             job_text = self._extract_text_from_data(job_data).lower()
             
-            if not job_text:
+            if not job_text or not resume_text:
                 return 0.0
             
-            # Extract important keywords from job description
-            important_keywords = re.findall(r'\b[a-zA-Z]{3,}\b', job_text)
-            important_keywords = [word for word in important_keywords if len(word) > 3]
+            # Extract keywords from job description with length filter
+            keywords = re.findall(r'\b[a-z]{3,}\b', job_text)
+            keywords = list(set(keywords))  # Remove duplicates
             
-            if not important_keywords:
+            if not keywords:
                 return 0.0
             
-            matched_keywords = sum(1 for keyword in important_keywords if keyword in resume_text)
+            # Count matches in resume
+            matched_keywords = sum(1 for keyword in keywords if keyword in resume_text)
             
-            return matched_keywords / len(important_keywords)
+            # Return normalized score
+            return min(1.0, matched_keywords / len(keywords)) if keywords else 0.0
         except Exception as e:
             logger.error(f"Keyword match calculation failed: {str(e)}")
             return 0.0
     
     def _extract_text_from_data(self, data: Dict[str, Any]) -> str:
+        """Extract text from preprocessed data, prioritizing original and cleaned text"""
         try:
-            if 'text' in data:
-                return str(data['text'])
-            elif 'cleaned_text' in data:
-                return str(data['cleaned_text'])
-            elif 'raw_text' in data:
-                return str(data['raw_text'])
-            else:
-                # Combine all text fields
-                text_parts = []
-                for key, value in data.items():
-                    if isinstance(value, str) and len(value) > 10:
-                        text_parts.append(value)
-                    elif isinstance(value, dict):
-                        for subkey, subvalue in value.items():
-                            if isinstance(subvalue, str) and len(subvalue) > 10:
-                                text_parts.append(subvalue)
-                return ' '.join(text_parts)
-        except Exception:
+            # Prioritize cleaned_text (better for processing)
+            if 'cleaned_text' in data and data['cleaned_text']:
+                text = str(data['cleaned_text']).strip()
+                if text:
+                    return text
+            
+            # Fall back to original_text
+            if 'original_text' in data and data['original_text']:
+                text = str(data['original_text']).strip()
+                if text:
+                    return text
+            
+            # Fallback to combined tokens
+            if 'processed_tokens' in data and isinstance(data['processed_tokens'], list):
+                if data['processed_tokens']:
+                    return ' '.join(str(token) for token in data['processed_tokens'])
+            
+            if 'tokens' in data and isinstance(data['tokens'], list):
+                if data['tokens']:
+                    return ' '.join(str(token) for token in data['tokens'])
+            
+            return ""
+        except Exception as e:
+            logger.warning(f"Text extraction warning: {str(e)}")
             return ""
     
     def _extract_skills(self, data: Dict[str, Any]) -> List[str]:
+        """Extract and deduplicate skills from data using word boundary matching"""
         try:
-            skills = []
+            skills = set()  # Use set for automatic deduplication
             text = self._extract_text_from_data(data).lower()
             
-            # Extract from predefined skill categories
-            for category, skill_list in self.skill_categories.items():
-                for skill in skill_list:
-                    if skill.lower() in text:
-                        skills.append(skill)
+            # Extract from predefined skill categories using word boundaries
+            # This prevents matching single letters like 'r' from 'programming'
+            for skill in self.skill_lookup.keys():
+                # Only match complete words/skills (minimum 3 characters)
+                if len(skill) >= 3:
+                    # Use word boundary matching with regex to prevent partial matches
+                    pattern = r'\b' + re.escape(skill) + r'\b'
+                    if re.search(pattern, text):
+                        # Map synonym back to canonical skill name
+                        canonical_skill = self.skill_lookup[skill]
+                        skills.add(canonical_skill)
             
             # Extract from structured data if available
             if 'keywords' in data and isinstance(data['keywords'], dict):
                 if 'technical_skills' in data['keywords']:
-                    skills.extend([skill['term'] for skill in data['keywords']['technical_skills']])
+                    for skill_item in data['keywords']['technical_skills']:
+                        if isinstance(skill_item, dict) and 'term' in skill_item:
+                            skill_term = skill_item['term'].strip()
+                            if len(skill_term) >= 2:  # Minimum 2 chars for structured data
+                                skills.add(skill_term)
+                        elif isinstance(skill_item, str):
+                            skill_term = skill_item.strip()
+                            if len(skill_term) >= 2:
+                                skills.add(skill_term)
             
-            return list(set(skills))
-        except Exception:
+            return list(skills)
+        except Exception as e:
+            logger.error(f"Skill extraction failed: {str(e)}")
             return []
     
     def _extract_experience_years(self, data: Dict[str, Any]) -> int:
@@ -336,17 +456,85 @@ class SimilarityEngine:
         return weaknesses
     
     def _generate_recommendations(self, result: Dict[str, Any]) -> List[str]:
+        """Generate actionable recommendations based on analysis"""
         recommendations = []
         missing_skills = result.get('missing_skills', [])
+        scores = result['component_scores']
+        overall = result.get('overall_score', 0)
         
+        # Skill-based recommendations (most important)
+        skill_score = scores.get('skill_match', 0)
         if missing_skills:
-            recommendations.append(f"Consider gaining experience in: {', '.join(missing_skills[:5])}")
+            if len(missing_skills) <= 3:
+                recommendations.append(
+                    f"🎯 High Priority: Learn {', '.join(missing_skills)} to significantly improve your match"
+                )
+            else:
+                top_missing = missing_skills[:3]
+                remaining = len(missing_skills) - 3
+                recommendations.append(
+                    f"🎯 Priority Skills: Focus on {', '.join(top_missing)} (plus {remaining} others)"
+                )
         
-        if result['component_scores'].get('experience_match', 0) < 0.7:
-            recommendations.append("Highlight relevant experience more prominently")
+        # Experience level recommendations
+        exp_score = scores.get('experience_match', 0)
+        if exp_score < 0.5:
+            recommendations.append(
+                "💼 Experience Gap: You need more experience. Highlight transferable skills and seek mentorship opportunities."
+            )
+        elif exp_score >= 0.9:
+            recommendations.append("✅ Perfect Experience Level: Your experience matches job requirements exactly.")
         
-        if result['component_scores'].get('keyword_match', 0) < 0.5:
-            recommendations.append("Include more relevant keywords from the job description")
+        # Skill coverage recommendations
+        if skill_score < 0.5:
+            recommendations.append(
+                "🛠️ Skill Development: You're missing key technical skills. Create a learning plan for the core technologies."
+            )
+        elif skill_score >= 0.85:
+            recommendations.append(
+                "🌟 Strong Technical Skills: You have excellent skill alignment. Emphasize your projects and achievements."
+            )
+        
+        # Semantic relevance recommendations
+        semantic_score = scores.get('semantic_similarity', 0)
+        if semantic_score < 0.4:
+            recommendations.append(
+                "📝 Resume Optimization: Use more job-specific terminology and industry keywords in your resume."
+            )
+        
+        # Keyword coverage recommendations
+        keyword_score = scores.get('keyword_match', 0)
+        if keyword_score < 0.5:
+            recommendations.append(
+                "🔍 ATS Improvement: Add relevant keywords from the job description to pass automated screening."
+            )
+        
+        # Education recommendations
+        edu_score = scores.get('education_match', 0)
+        if edu_score < 0.6:
+            recommendations.append(
+                "🎓 Education: Highlight relevant certifications or take courses to meet educational requirements."
+            )
+        
+        # Overall fit recommendations
+        if overall >= 85:
+            recommendations.append(
+                "🚀 STRONG FIT: Apply immediately! You're an excellent match for this role."
+            )
+        elif overall >= 70:
+            recommendations.append(
+                "📌 GOOD FIT: You're a qualified candidate. Customize your resume for this specific role."
+            )
+        elif overall >= 50:
+            recommendations.append(
+                "⚡ POTENTIAL: You have some matching skills. Focus on addressing gaps to become competitive."
+            )
+        else:
+            recommendations.append(
+                "💡 LEARNING OPPORTUNITY: This role requires skill development. Consider entry-level positions first."
+            )
+        
+        return recommendations
         
         if result['component_scores'].get('semantic_similarity', 0) < 0.5:
             recommendations.append("Tailor resume content to better match the job description")
