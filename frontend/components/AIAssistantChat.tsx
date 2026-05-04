@@ -158,7 +158,7 @@ How can I help you advance your career today?`,
     // Split by numbered lists and format
     const parts = content.split(/(?=\d+\.)/);
     return parts.map((part, idx) => {
-      if (part.trim().startsWith(/\d+\./)) {
+      if (/^\d+\./.test(part.trim())) {
         return (
           <div key={idx} className="mb-2">
             <p className="text-sm leading-relaxed">{part.trim()}</p>
