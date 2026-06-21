@@ -1,6 +1,6 @@
 # ApplyWise 🎯
-LIVE LINK : apply-wise-final-project.vercel.app
-Deployment Link : apply-wise-final-project-259n4edvb-palakkushwahas-projects.vercel.app
+🚀 **Live Link:** [apply-wise-final-project.vercel.app](https://apply-wise-final-project.vercel.app)  
+⚡ **Latest Deployment:** [apply-wise-final-project-259n4edvb-palakkushwahas-projects.vercel.app](https://apply-wise-final-project-259n4edvb-palakkushwahas-projects.vercel.app)
 
 > **AI-powered career platform** — resume analysis, tailored CV generation, interview coaching, and skill gap analysis. Runs **100% locally** via Ollama (Mistral 7B). No cloud subscriptions. No data ever leaves your machine.
 
