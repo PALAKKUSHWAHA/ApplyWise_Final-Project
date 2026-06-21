@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import AIAssistantChat from '@/components/AIAssistantChat';
 import {
   FileText,
@@ -10,11 +12,14 @@ import {
   MessageSquare,
   ChevronRight,
   Sparkles,
+  Zap,
+  Lock,
+  X,
 } from 'lucide-react';
 
 export default function AIAssistant() {
   const [activeTab, setActiveTab] = useState<
-    'chat' | 'resume_tailoring' | 'gap_analysis' | 'interview_prep' | 'cover_letter'
+    'chat' | 'resume_tailoring' | 'gap_analysis' | 'interview_prep'
   >('chat');
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -22,30 +27,37 @@ export default function AIAssistant() {
   const [currentSkills, setCurrentSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
 
-  const features = [
+  const tabs = [
+    {
+      id: 'chat',
+      label: 'General Chat',
+      icon: MessageSquare,
+      gradient: 'from-indigo-500 to-violet-600',
+      description: 'Open-ended career advice & Q&A',
+    },
     {
       id: 'resume_tailoring',
-      title: 'Resume Tailoring',
-      description: 'Get AI-powered suggestions to optimize your resume for specific jobs',
+      label: 'Resume Tailoring',
       icon: FileText,
-      color: 'from-blue-500 to-blue-600',
-      benefits: ['Keyword optimization', 'Better bullet points', 'Highlighted achievements'],
+      gradient: 'from-blue-500 to-cyan-600',
+      description: 'Keyword-optimize your resume',
+      benefits: ['Keyword optimization', 'Better bullet points', 'Achievement highlights'],
     },
     {
       id: 'gap_analysis',
-      title: 'Skill Gap Analysis',
-      description: 'Identify missing skills and get personalized learning paths',
+      label: 'Skill Gap Analysis',
       icon: Brain,
-      color: 'from-purple-500 to-purple-600',
+      gradient: 'from-purple-500 to-pink-600',
+      description: 'Identify & close skill gaps',
       benefits: ['Learning resources', 'Certification paths', 'Timeline estimates'],
     },
     {
       id: 'interview_prep',
-      title: 'Interview Preparation',
-      description: 'Generate interview questions and practice answers',
+      label: 'Interview Prep',
       icon: Briefcase,
-      color: 'from-green-500 to-green-600',
-      benefits: ['Sample questions', 'Answer suggestions', 'Technical hints'],
+      gradient: 'from-emerald-500 to-teal-600',
+      description: 'Practice questions & answers',
+      benefits: ['Sample questions', 'STAR method answers', 'Technical hints'],
     },
   ];
 
@@ -63,141 +75,122 @@ export default function AIAssistant() {
   const renderFeatureContent = () => {
     if (activeTab === 'chat') {
       return (
-        <AIAssistantChat
-          resumeText={resumeText}
-          jobDescription={jobDescription}
-          featureType="general"
-        />
+        <div className="h-[560px]">
+          <AIAssistantChat resumeText={resumeText} jobDescription={jobDescription} featureType="general" />
+        </div>
       );
     }
 
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Resume Text Area */}
+        {/* Context Inputs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Your Resume
+              📄 Your Resume
             </label>
             <textarea
               value={resumeText}
               onChange={(e) => setResumeText(e.target.value)}
-              placeholder="Paste your resume content here..."
-              className="w-full h-64 border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="Paste your resume content here — include summary, experience, skills, and education..."
+              className="w-full h-52 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none bg-gray-50 transition"
             />
-            <p className="text-xs text-gray-500 mt-2">
-              Include your summary, experience, skills, and education
-            </p>
           </div>
-
-          {/* Job Description Text Area */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Job Description
+              💼 Job Description
             </label>
             <textarea
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Paste the job description here..."
-              className="w-full h-64 border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="Paste the full job description — include responsibilities, requirements, and qualifications..."
+              className="w-full h-52 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none bg-gray-50 transition"
             />
-            <p className="text-xs text-gray-500 mt-2">
-              Include all responsibilities, requirements, and qualifications
-            </p>
           </div>
         </div>
 
-        {/* Additional Fields */}
-        {(activeTab === 'gap_analysis' || activeTab === 'interview_prep') && (
-          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-            {activeTab === 'gap_analysis' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Your Current Skills
-                </label>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-                    placeholder="Add a skill and press Enter"
-                    className="flex-1 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                  />
+        {/* Extra Fields */}
+        {activeTab === 'gap_analysis' && (
+          <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              🧠 Your Current Skills
+            </label>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
+                placeholder="Type a skill and press Enter"
+                className="flex-1 border border-purple-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 bg-white"
+              />
+              <button
+                onClick={handleAddSkill}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition font-medium"
+              >
+                Add
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {currentSkills.map((skill, idx) => (
+                <span
+                  key={idx}
+                  className="flex items-center gap-1.5 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium"
+                >
+                  {skill}
                   <button
-                    onClick={handleAddSkill}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                    onClick={() => handleRemoveSkill(idx)}
+                    className="text-purple-500 hover:text-purple-700 ml-0.5"
                   >
-                    Add
+                    <X size={12} />
                   </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentSkills.map((skill, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                    >
-                      {skill}
-                      <button
-                        onClick={() => handleRemoveSkill(idx)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'interview_prep' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Interview Details
-                </label>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Company name (optional)"
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-blue-600 rounded"
-                      defaultChecked={false}
-                      onChange={(e) => {}}
-                    />
-                    <span className="text-sm text-gray-700">This is a technical role</span>
-                  </label>
-                </div>
-              </div>
-            )}
+                </span>
+              ))}
+              {currentSkills.length === 0 && (
+                <p className="text-xs text-purple-400">Add skills to get a personalised gap report</p>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Chat Assistant */}
-        {(resumeText || jobDescription) && (
-          <div className="h-96 border rounded-lg overflow-hidden">
+        {activeTab === 'interview_prep' && (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              🎤 Interview Details
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Company name (optional)"
+                className="border border-emerald-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 bg-white"
+              />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded" />
+                <span className="text-sm text-gray-700">This is a technical role</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Chat Component */}
+        {(resumeText || jobDescription) ? (
+          <div className="h-[460px]">
             <AIAssistantChat
               resumeText={resumeText}
               jobDescription={jobDescription}
               featureType={activeTab as any}
             />
           </div>
-        )}
-
-        {!resumeText && !jobDescription && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-            <Sparkles className="mx-auto text-blue-600 mb-3" size={32} />
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Get Started with AI Assistance
-            </h3>
-            <p className="text-gray-600">
-              Fill in your resume and job description above to unlock AI-powered insights and
-              recommendations.
+        ) : (
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-8 text-center">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
+              <Sparkles className="w-7 h-7 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Add context to unlock AI insights</h3>
+            <p className="text-sm text-gray-500 max-w-sm mx-auto">
+              Paste your resume and/or job description above to get personalised AI-powered recommendations.
             </p>
           </div>
         )}
@@ -205,94 +198,163 @@ export default function AIAssistant() {
     );
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     <>
       <Head>
-        <title>AI Career Assistant - ResuMatch</title>
-        <meta name="description" content="AI-powered career assistance for resume tailoring, interview prep, and more" />
+        <title>AI Career Assistant — ApplyWise</title>
+        <meta
+          name="description"
+          content="AI-powered career assistance for resume tailoring, interview prep, and skill gap analysis. Powered by Ollama running locally."
+        />
       </Head>
 
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 flex flex-col">
         <Header />
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Sparkles className="text-blue-600" size={32} />
-              <h1 className="text-4xl font-bold text-gray-900">AI Career Assistant</h1>
-            </div>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Get AI-powered guidance for resume optimization, interview preparation, and skill
-              development
-            </p>
-          </div>
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+          {/* ── Hero ── */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="text-center mb-12"
+          >
+            <motion.div variants={itemVariants} className="flex justify-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-200">
+                <Zap className="w-3 h-3" />
+                Powered by Ollama · Mistral 7B
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200">
+                <Lock className="w-3 h-3" />
+                Runs 100% locally
+              </span>
+            </motion.div>
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-            {features.map((feature) => {
-              const Icon = feature.icon;
+            <motion.h1
+              variants={itemVariants}
+              className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
+            >
+              Your{' '}
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                AI Career Assistant
+              </span>
+            </motion.h1>
+
+            <motion.p variants={itemVariants} className="text-lg text-gray-500 max-w-2xl mx-auto">
+              Resume tailoring, interview coaching, and skill gap analysis — all powered by a local
+              Ollama model. Your data never leaves your machine.
+            </motion.p>
+          </motion.div>
+
+          {/* ── Tab Cards ── */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
-                <button
-                  key={feature.id}
-                  onClick={() =>
-                    setActiveTab(feature.id as 'resume_tailoring' | 'gap_analysis' | 'interview_prep')
-                  }
-                  className={`p-6 rounded-lg text-left transition transform hover:scale-105 ${
-                    activeTab === feature.id
-                      ? `bg-gradient-to-br ${feature.color} text-white`
-                      : 'bg-white border border-gray-200 text-gray-900 hover:shadow-lg'
+                <motion.button
+                  key={tab.id}
+                  variants={itemVariants}
+                  whileHover={{ y: -2, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`relative p-4 rounded-2xl text-left transition-all duration-200 border ${
+                    isActive
+                      ? `bg-gradient-to-br ${tab.gradient} text-white border-transparent shadow-xl`
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-200 hover:shadow-md'
                   }`}
                 >
-                  <Icon size={28} className="mb-3" />
-                  <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-                  <p className={`text-sm mb-4 ${activeTab === feature.id ? 'text-blue-100' : 'text-gray-600'}`}>
-                    {feature.description}
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${
+                      isActive
+                        ? 'bg-white/20'
+                        : `bg-gradient-to-br ${tab.gradient} text-white shadow-sm`
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: isActive ? 'white' : 'white' }} />
+                  </div>
+                  <p className={`text-sm font-bold mb-0.5 ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                    {tab.label}
                   </p>
-                  {activeTab === feature.id && (
-                    <div className="space-y-2">
-                      {feature.benefits.map((benefit, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-sm">
-                          <ChevronRight size={14} />
-                          {benefit}
-                        </div>
-                      ))}
-                    </div>
+                  <p className={`text-xs ${isActive ? 'text-white/70' : 'text-gray-500'}`}>
+                    {tab.description}
+                  </p>
+                  {isActive && (
+                    <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full opacity-80" />
                   )}
-                </button>
+                </motion.button>
               );
             })}
-          </div>
+          </motion.div>
 
-          {/* Tab Content */}
-          <div className="bg-white rounded-lg shadow-lg p-6">{renderFeatureContent()}</div>
+          {/* ── Main Content ── */}
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8"
+          >
+            {renderFeatureContent()}
+          </motion.div>
 
-          {/* Quick Tips */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-              <h4 className="font-semibold text-gray-900 mb-2">💡 Pro Tip</h4>
-              <p className="text-sm text-gray-700">
-                Be specific with your context. Include detailed job descriptions and complete
-                resumes for better recommendations.
-              </p>
-            </div>
-
-            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
-              <h4 className="font-semibold text-gray-900 mb-2">🎯 Best Practice</h4>
-              <p className="text-sm text-gray-700">
-                Follow up with clarifying questions. Our AI improves with conversation and
-                context.
-              </p>
-            </div>
-
-            <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
-              <h4 className="font-semibold text-gray-900 mb-2">⚡ Quick Win</h4>
-              <p className="text-sm text-gray-700">
-                Copy suggestions directly. All assistant responses can be copied to clipboard
-                for easy use.
-              </p>
-            </div>
-          </div>
+          {/* ── Tips Row ── */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4"
+          >
+            {[
+              {
+                emoji: '💡',
+                title: 'Be Specific',
+                body: 'Include detailed job descriptions and complete resumes for better AI recommendations.',
+                bg: 'bg-amber-50 border-amber-100',
+                title_color: 'text-amber-800',
+              },
+              {
+                emoji: '🎯',
+                title: 'Iterate & Refine',
+                body: 'Follow up with questions. The AI improves its suggestions with each message.',
+                bg: 'bg-indigo-50 border-indigo-100',
+                title_color: 'text-indigo-800',
+              },
+              {
+                emoji: '🔒',
+                title: 'Fully Private',
+                body: 'Everything runs locally via Ollama. No data is sent to external servers.',
+                bg: 'bg-emerald-50 border-emerald-100',
+                title_color: 'text-emerald-800',
+              },
+            ].map((tip) => (
+              <motion.div
+                key={tip.title}
+                variants={itemVariants}
+                className={`rounded-2xl p-5 border ${tip.bg}`}
+              >
+                <h4 className={`font-bold text-sm mb-1 ${tip.title_color}`}>
+                  {tip.emoji} {tip.title}
+                </h4>
+                <p className="text-xs text-gray-600 leading-relaxed">{tip.body}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </main>
 
         <Footer />

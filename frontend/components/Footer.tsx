@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const footerLinks = {
   project: [
-    { name: 'Source Code', href: 'https://github.com/gauravsingh07/ResuMatch' },
+    { name: 'Source Code', href: 'https://github.com/PALAKKUSHWAHA' },
     { name: 'Documentation', href: '/help' },
     { name: 'About Project', href: '/about' },
   ],
@@ -18,8 +18,8 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { name: 'GitHub', icon: Github, href: 'https://github.com/gauravsingh07/ResuMatch' },
-  { name: 'Email', icon: Mail, href: 'mailto:gaurav91345@gmail.com' },
+  { name: 'GitHub', icon: Github, href: 'https://github.com/PALAKKUSHWAHA' },
+  { name: 'Email', icon: Mail, href: 'mailto:palak8kush@gmail.com' },
 ];
 
 export default function Footer() {
@@ -39,7 +39,7 @@ export default function Footer() {
                 <div className="w-10 h-10 bg-gradient-to-r from-primary-600 to-purple-600 rounded-xl flex items-center justify-center">
                   <Target className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-2xl font-bold">ResuMatch</span>
+                <span className="text-2xl font-bold">ApplyWise</span>
               </Link>
               <p className="text-gray-400 leading-relaxed mb-4 md:mb-6 text-sm md:text-base">
                 A demonstration project showcasing AI-powered resume analysis using natural language 
@@ -99,7 +99,7 @@ export default function Footer() {
               Have questions about this project or want to connect? Feel free to reach out!
             </p>
             <motion.a
-              href="mailto:gaurav91345@gmail.com"
+              href="mailto:palak8kush@gmail.com"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="btn-primary inline-flex items-center px-4 md:px-6 py-2 md:py-3 text-sm md:text-base"
@@ -118,7 +118,7 @@ export default function Footer() {
           className="mt-12 md:mt-16 pt-6 md:pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
         >
           <p className="text-gray-400 text-sm md:text-base text-center md:text-left">
-            © {new Date().getFullYear()} ResuMatch. Created by Gaurav Singh.
+            © {new Date().getFullYear()} ApplyWise. Created by Palak Kushwaha.
           </p>
           <div className="text-sm md:text-base text-gray-400 text-center md:text-right">
             Built with Next.js, TypeScript & Tailwind CSS

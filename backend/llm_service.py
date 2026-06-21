@@ -44,6 +44,7 @@ class FeatureType(str, Enum):
     GAP_ANALYSIS = "gap_analysis"
     INTERVIEW_PREP = "interview_prep"
     GENERAL = "general"
+    CV_GENERATION = "cv_generation"
 
 
 class LLMService:
@@ -162,7 +163,16 @@ Make questions realistic and helpful for actual interview preparation.""",
 
             FeatureType.GENERAL: """You are a knowledgeable career assistant powered by AI.
 Help users with their career journey, job search, and professional development.
-Be helpful, specific, and actionable in your responses."""
+Be helpful, specific, and actionable in your responses.""",
+
+            FeatureType.CV_GENERATION: """You are an expert CV writer and career coach with 15+ years of experience.
+You create ATS-optimised, professional CVs that get interviews.
+Rules:
+1. Always fill in ALL sections with realistic, specific content — never leave placeholder brackets.
+2. Tailor every section to the job description keywords.
+3. Use strong action verbs and quantify achievements where possible.
+4. Keep formatting clean and consistent so it parses well through ATS systems.
+5. Make the CV compelling and interview-ready."""
         }
         return prompts.get(feature_type, prompts[FeatureType.GENERAL])
 
@@ -220,7 +230,7 @@ Be helpful, specific, and actionable in your responses."""
                         "num_predict": self.max_tokens,
                     }
                 },
-                timeout=120
+                timeout=480  # 8 min — covers long ATS prompts through Mistral 7B
             )
             
             if response.status_code == 200:
@@ -505,6 +515,99 @@ Write it as if I'm sending it tomorrow."""
                 "resume": resume_text,
                 "job_description": job_description
             }
+        )
+
+
+    def generate_custom_cv(
+        self,
+        job_description: str,
+        user_name: str = "Your Name",
+        user_email: str = "your@email.com",
+        base_resume: str = "",
+    ) -> str:
+        """
+        Generate a complete, tailored CV for the given job description.
+        Uses Mistral via Ollama to produce a structured, ATS-optimised CV.
+        """
+        base_context = f"\nBase Resume / Background Info:\n{base_resume}" if base_resume else ""
+
+        messages = [
+            {
+                "role": "user",
+                "content": f"""Create a complete, professional, ATS-optimised CV tailored specifically for this job.
+
+Job Description:
+{job_description}
+{base_context}
+
+Candidate Details:
+- Name: {user_name}
+- Email: {user_email}
+
+Generate a FULL CV including all sections below. Use real-sounding content tailored to the job.
+If base resume info is provided, use and enhance it. If not, generate sensible placeholder content.
+
+Format exactly as follows:
+
+===== CV START =====
+
+{user_name}
+{user_email} | LinkedIn: linkedin.com/in/{user_name.lower().replace(' ', '-')} | GitHub: github.com/{''.join(user_name.lower().split())}
+
+PROFESSIONAL SUMMARY
+[3-4 sentence summary tailored to the job. Mention key skills from the job description.]
+
+SKILLS
+Technical Skills: [comma-separated technical skills matching the job]
+Soft Skills: [comma-separated soft skills]
+Tools & Technologies: [relevant tools, frameworks, platforms]
+
+WORK EXPERIENCE
+
+[Job Title] | [Company Name] | [Start Date] – [End Date]
+• [Achievement bullet 1 - quantified, job-relevant]
+• [Achievement bullet 2 - quantified, job-relevant]
+• [Achievement bullet 3 - quantified, job-relevant]
+
+[Job Title] | [Company Name] | [Start Date] – [End Date]
+• [Achievement bullet 1]
+• [Achievement bullet 2]
+• [Achievement bullet 3]
+
+EDUCATION
+
+[Degree] in [Field] | [University Name] | [Year]
+• Relevant coursework: [list 4-5 relevant courses]
+• GPA: 3.8/4.0 (if applicable)
+
+PROJECTS
+
+[Project Name] | [Tech Stack]
+• [Brief description of what it does and its impact]
+• [Link or key outcome]
+
+[Project Name] | [Tech Stack]
+• [Brief description]
+
+CERTIFICATIONS
+• [Certification 1 relevant to job]
+• [Certification 2 relevant to job]
+
+ACHIEVEMENTS
+• [Award or recognition relevant to the field]
+• [Hackathon / competition / publication if relevant]
+
+===== CV END =====
+
+Make the CV highly specific to the job description. Use industry keywords throughout.
+Do NOT add placeholder brackets in the final output — fill in all fields with realistic content.""",
+            }
+        ]
+
+        return self.chat(
+            messages,
+            FeatureType.CV_GENERATION,
+            {"job_description": job_description},
         )
 
 

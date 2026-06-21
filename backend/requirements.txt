@@ -50,3 +50,6 @@ anthropic>=0.7.0
 # torch>=2.0.0
 
 # Deployment timestamp: 2025-07-08
+
+# Document generation (ATS Resume Optimizer)
+reportlab>=4.0.0

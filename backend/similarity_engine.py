@@ -49,14 +49,75 @@ class SimilarityEngine:
             'artificial intelligence': ['ai', 'ai/ml', 'ai-ml']
         }
         
-        # Predefined skill sets for better matching
+        # Comprehensive predefined skill sets with expanded categories
         self.skill_categories = {
-            'programming': ['python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'ruby', 'php', 'go', 'rust', 'swift', 'kotlin'],
-            'web_development': ['html', 'css', 'react', 'angular', 'vue', 'node.js', 'express', 'django', 'flask', 'fastapi'],
-            'databases': ['sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'oracle', 'sqlite'],
-            'cloud': ['aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'jenkins', 'gitlab'],
-            'data_science': ['pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch', 'r', 'stata', 'spss'],
-            'tools': ['git', 'linux', 'bash', 'vim', 'vscode', 'intellij', 'eclipse', 'postman']
+            'programming_languages': [
+                'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'ruby', 'php', 'go', 'rust', 
+                'swift', 'kotlin', 'scala', 'r', 'perl', 'groovy', 'elixir', 'clojure', 'haskell', 'lua',
+                'objective-c', 'bash', 'shell', 'powershell', 'matlab', 'vb.net', 'java', 'visual basic'
+            ],
+            'web_frameworks': [
+                'react', 'angular', 'vue', 'node.js', 'express', 'django', 'flask', 'fastapi', 'laravel',
+                'spring', 'spring boot', 'asp.net', 'rails', 'sinatra', 'tornado', 'bottle', 'pyramid',
+                'next.js', 'nuxt', 'svelte', 'gatsby', 'ember', 'backbone', 'knockout'
+            ],
+            'databases': [
+                'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'oracle', 'sqlite',
+                'mariadb', 'cassandra', 'couchdb', 'dynamodb', 'firebase', 'realm', 'h2', 'hbase',
+                'influxdb', 'timescaledb', 'neo4j', 'arangodb', 'rethinkdb', 'solr'
+            ],
+            'cloud_platforms': [
+                'aws', 'azure', 'gcp', 'google cloud', 'heroku', 'digitalocean', 'linode', 'vultr',
+                'alibaba cloud', 'ibm cloud', 'oracle cloud', 'aws lambda', 'azure functions', 'cloud run'
+            ],
+            'devops_tools': [
+                'docker', 'kubernetes', 'terraform', 'jenkins', 'gitlab', 'github', 'bitbucket', 'circleci',
+                'travis ci', 'ansible', 'puppet', 'chef', 'vagrant', 'git', 'svn', 'mercurial', 'jira',
+                'confluence', 'prometheus', 'grafana', 'elk', 'splunk', 'datadog', 'newrelic'
+            ],
+            'data_science': [
+                'pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch', 'keras', 'stata', 'spss',
+                'r', 'matlab', 'spark', 'hadoop', 'tableau', 'power bi', 'looker', 'qlik', 'plotly',
+                'matplotlib', 'seaborn', 'ggplot2', 'jupyter', 'anaconda', 'airflow', 'dbt'
+            ],
+            'mobile_development': [
+                'ios', 'android', 'react native', 'flutter', 'ionic', 'xamarin', 'cordova', 'phonegap',
+                'swift', 'kotlin', 'objective-c', 'java', 'jetpack'
+            ],
+            'testing_qa': [
+                'selenium', 'cypress', 'jest', 'mocha', 'pytest', 'unittest', 'testng', 'jUnit', 'qtest',
+                'postman', 'rest-assured', 'appium', 'xcode', 'junit5', 'mockito', 'jasmine', 'karma'
+            ],
+            'development_tools': [
+                'git', 'linux', 'windows', 'mac', 'vim', 'vscode', 'intellij', 'eclipse', 'pycharm',
+                'webstorm', 'datagrip', 'xcode', 'android studio', 'visual studio', 'sublime text',
+                'atom', 'vim', 'neovim', 'emacs', 'notepad++'
+            ],
+            'version_control': [
+                'git', 'github', 'gitlab', 'bitbucket', 'svn', 'mercurial', 'perforce', 'bazaar'
+            ],
+            'messaging_queues': [
+                'rabbitmq', 'kafka', 'activemq', 'redis', 'pubsub', 'azure service bus', 'sqs', 'sns'
+            ],
+            'api_rest': [
+                'rest', 'graphql', 'grpc', 'soap', 'rest api', 'api design', 'openapi', 'swagger'
+            ],
+            'documentation': [
+                'swagger', 'openapi', 'postman', 'confluence', 'jira', 'markdown', 'latex', 'sphinx'
+            ],
+            'containers_orchestration': [
+                'docker', 'kubernetes', 'docker compose', 'docker swarm', 'openshift', 'nomad'
+            ],
+            'machine_learning': [
+                'machine learning', 'deep learning', 'neural networks', 'nlp', 'computer vision', 'cv',
+                'reinforcement learning', 'supervised learning', 'unsupervised learning', 'bert', 'gpt',
+                'transformers', 'cnn', 'rnn', 'lstm', 'gan'
+            ],
+            'soft_skills': [
+                'communication', 'leadership', 'teamwork', 'project management', 'agile', 'scrum',
+                'kanban', 'problem solving', 'critical thinking', 'time management', 'attention to detail',
+                'collaboration', 'adaptability', 'creativity', 'analytical thinking'
+            ]
         }
         
         # Build reverse skill lookup for synonyms
@@ -186,7 +247,7 @@ class SimilarityEngine:
             return 0.0
     
     def _calculate_skill_match(self, resume_data: Dict[str, Any], job_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculate skill match with smart synonym matching"""
+        """Calculate skill match with smart synonym matching and fuzzy string matching"""
         try:
             resume_skills = self._extract_skills(resume_data)
             job_skills = self._extract_skills(job_data)
@@ -197,40 +258,58 @@ class SimilarityEngine:
             matched_skills = []
             matched_set = set()
             
+            def _is_skill_match(job_skill: str, resume_skill: str) -> bool:
+                """Check if two skills match considering variations and synonyms"""
+                job_lower = job_skill.lower().strip()
+                resume_lower = resume_skill.lower().strip()
+                
+                # Exact match
+                if job_lower == resume_lower:
+                    return True
+                
+                # Check for substring matches (but ensure meaningful matches, not just 'sql' in 'mysql')
+                if len(job_lower) > 2 and len(resume_lower) > 2:
+                    # Both must be significant tech terms
+                    if (job_lower in resume_lower or resume_lower in job_lower) and \
+                       (len(job_lower) >= len(resume_lower) * 0.6 or len(resume_lower) >= len(job_lower) * 0.6):
+                        return True
+                
+                # Check for common variations (e.g., 'node.js' vs 'nodejs')
+                job_normalized = job_lower.replace('.', '').replace('-', '').replace(' ', '')
+                resume_normalized = resume_lower.replace('.', '').replace('-', '').replace(' ', '')
+                if job_normalized == resume_normalized and len(job_normalized) >= 3:
+                    return True
+                
+                # Check synonym mapping
+                for base_skill, synonyms in self.skill_synonyms.items():
+                    if job_lower == base_skill or job_lower in synonyms:
+                        for syn in [base_skill] + synonyms:
+                            if syn == resume_lower or syn in resume_lower or resume_lower in syn:
+                                return True
+                    if resume_lower == base_skill or resume_lower in synonyms:
+                        for syn in [base_skill] + synonyms:
+                            if syn == job_lower or syn in job_lower or job_lower in syn:
+                                return True
+                
+                return False
+            
+            # Match job skills with resume skills
             for job_skill in job_skills:
                 job_skill_lower = job_skill.lower()
                 
-                # Check direct matches in resume skills
                 for resume_skill in resume_skills:
-                    resume_skill_lower = resume_skill.lower()
-                    
-                    # Direct match
-                    if job_skill_lower == resume_skill_lower:
+                    if _is_skill_match(job_skill, resume_skill):
                         matched_skills.append(job_skill)
                         matched_set.add(job_skill_lower)
                         break
-                    
-                    # Check if either is substring of other (but with minimum length check)
-                    if (len(resume_skill_lower) > 3 and len(job_skill_lower) > 3):
-                        if job_skill_lower in resume_skill_lower or resume_skill_lower in job_skill_lower:
-                            matched_skills.append(job_skill)
-                            matched_set.add(job_skill_lower)
-                            break
-                    
-                    # Check synonyms
-                    for base_skill, synonyms in self.skill_synonyms.items():
-                        if job_skill_lower == base_skill or job_skill_lower in synonyms:
-                            for syn in [base_skill] + synonyms:
-                                if syn in resume_skill_lower or resume_skill_lower == syn:
-                                    matched_skills.append(job_skill)
-                                    matched_set.add(job_skill_lower)
-                                    break
             
             # Remove duplicates while preserving order
             matched_skills = list(dict.fromkeys(matched_skills))
             missing_skills = [skill for skill in job_skills if skill.lower() not in matched_set]
             
             score = len(matched_skills) / len(job_skills) if job_skills else 0.0
+            
+            logger.info(f"Skill Match - Job skills: {len(job_skills)}, Resume skills: {len(resume_skills)}, Matched: {len(matched_skills)}, Missing: {len(missing_skills)}")
             
             return {
                 'score': min(1.0, score),
@@ -337,16 +416,15 @@ class SimilarityEngine:
             return ""
     
     def _extract_skills(self, data: Dict[str, Any]) -> List[str]:
-        """Extract and deduplicate skills from data using word boundary matching"""
+        """Extract and deduplicate skills from data using dynamic and predefined patterns"""
         try:
             skills = set()  # Use set for automatic deduplication
             text = self._extract_text_from_data(data).lower()
             
             # Extract from predefined skill categories using word boundaries
-            # This prevents matching single letters like 'r' from 'programming'
             for skill in self.skill_lookup.keys():
-                # Only match complete words/skills (minimum 3 characters)
-                if len(skill) >= 3:
+                # Only match complete words/skills (minimum 2 characters for acronyms like 'ML', 'AI')
+                if len(skill) >= 2:
                     # Use word boundary matching with regex to prevent partial matches
                     pattern = r'\b' + re.escape(skill) + r'\b'
                     if re.search(pattern, text):
@@ -354,20 +432,59 @@ class SimilarityEngine:
                         canonical_skill = self.skill_lookup[skill]
                         skills.add(canonical_skill)
             
+            # Dynamic skill extraction: Look for capitalized tech terms and common patterns
+            # Pattern 1: Multi-word tech terms (e.g., "Machine Learning", "Spring Boot")
+            tech_patterns = [
+                r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b(?=\s+(?:framework|library|platform|tool|language|database))',
+                r'\b(AWS|GCP|API|ML|AI|CV|NLP|REST|SOA|SQL|NoSQL|CI|CD|IoT|VR|AR)\b',
+                r'\b([A-Z][a-z]+\s*[#\+\.]?)\b(?=,|\s+[and|or])',  # Languages with special chars like C++, C#
+            ]
+            
+            for pattern in tech_patterns:
+                matches = re.finditer(pattern, text)
+                for match in matches:
+                    skill = match.group(1).strip()
+                    if len(skill) >= 2 and skill.lower() not in self.skill_lookup:
+                        skills.add(skill)
+            
+            # Pattern: Look for common frameworks/tools after "using" or "with"
+            framework_patterns = [
+                r'(?:using|with|built on|built with|built in|using the|implemented in)\s+([a-zA-Z\s\+\#\-]+?)(?:\s+(?:and|,|\.|,|to)|$)',
+                r'(?:framework|library|platform|tool|technology|stack):\s*([a-zA-Z0-9\s\+\#\-]+?)(?:\s+(?:and|,|\.|,|to)|$)',
+            ]
+            
+            for pattern in framework_patterns:
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    skill_phrase = match.group(1).strip()
+                    # Split by common separators
+                    for skill in re.split(r',\s*|and\s+|or\s+|\s{2,}', skill_phrase):
+                        skill = skill.strip()
+                        if len(skill) >= 2 and len(skill) <= 50:  # Reasonable length
+                            if skill.lower() not in self.skill_lookup:
+                                skills.add(skill)
+            
             # Extract from structured data if available
             if 'keywords' in data and isinstance(data['keywords'], dict):
                 if 'technical_skills' in data['keywords']:
                     for skill_item in data['keywords']['technical_skills']:
                         if isinstance(skill_item, dict) and 'term' in skill_item:
                             skill_term = skill_item['term'].strip()
-                            if len(skill_term) >= 2:  # Minimum 2 chars for structured data
+                            if len(skill_term) >= 2:
                                 skills.add(skill_term)
                         elif isinstance(skill_item, str):
                             skill_term = skill_item.strip()
                             if len(skill_term) >= 2:
                                 skills.add(skill_term)
             
-            return list(skills)
+            # Filter out false positives and weak matches
+            filtered_skills = []
+            for skill in skills:
+                # Skip generic words and single letters
+                if len(skill) >= 2 and skill.lower() not in ['the', 'and', 'or', 'for', 'is', 'at', 'in', 'be', 'as', 'on', 'by', 'it', 'to', 'of', 'up']:
+                    filtered_skills.append(skill)
+            
+            return list(set(filtered_skills))  # Remove any duplicates
         except Exception as e:
             logger.error(f"Skill extraction failed: {str(e)}")
             return []

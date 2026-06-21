@@ -3,11 +3,20 @@ FastAPI routes for LLM-powered chat assistant
 Handles resume tailoring, gap analysis, and interview prep
 """
 
+import base64
+import logging
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import logging
+
 from llm_service import get_llm_service, FeatureType
+from ats_optimizer_service import (
+    parse_resume_file,
+    run_ats_optimization,
+    build_docx,
+    build_pdf,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -246,3 +255,140 @@ async def health_check():
             "status": "unhealthy",
             "error": str(e)
         }
+
+
+class CVGenerationRequest(BaseModel):
+    """Request for custom CV generation"""
+    job_description: str
+    user_name: Optional[str] = "Your Name"
+    user_email: Optional[str] = "your@email.com"
+    base_resume: Optional[str] = ""
+
+
+@router.post("/generate-cv")
+async def generate_cv(request: CVGenerationRequest):
+    """
+    Generate a complete, tailored CV from a job description.
+
+    Uses Ollama (Mistral) to produce an ATS-optimised CV with:
+    - Professional Summary
+    - Skills (Technical + Soft)
+    - Work Experience with quantified achievements
+    - Education & Projects
+    - Certifications & Achievements
+    """
+    try:
+        llm_service = get_llm_service()
+
+        cv_text = llm_service.generate_custom_cv(
+            job_description=request.job_description,
+            user_name=request.user_name or "Your Name",
+            user_email=request.user_email or "your@email.com",
+            base_resume=request.base_resume or "",
+        )
+
+        return {
+            "cv": cv_text,
+            "feature": "cv_generation",
+            "timestamp": __import__("datetime").datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"CV generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ats-optimize")
+async def ats_optimize(
+    resume_file: UploadFile = File(..., description="PDF or DOCX resume"),
+    job_description: str = Form(..., description="Target job description"),
+    optimization_mode: str = Form("aggressive", description="standard or aggressive"),
+    output_formats: str = Form("docx,pdf", description="Comma-separated: docx,pdf"),
+):
+    """
+    ATS Resume Optimizer — Full Pipeline
+
+    Steps:
+      1. Parse uploaded resume (PDF/DOCX) → raw text
+      2. LLM Call 1: extract structured resume JSON (preserves all candidate info)
+      3. LLM Call 2: analyse JD, extract ATS keywords, compute skill gap
+      4. LLM Call 3: generate ATS-optimised resume + report
+      5. Build DOCX and/or PDF documents
+      6. Return optimised text + ATS report + base64 file downloads
+
+    Rules enforced:
+      ✓ Never fabricate experience or certifications
+      ✓ Never overwrite contact/personal info
+      ✓ Bullets rewritten: Action Verb + Task + Technology + Result
+    """
+    try:
+        # ── Read uploaded file ──────────────────────────────────────────────
+        file_bytes = await resume_file.read()
+        if not file_bytes:
+            raise HTTPException(status_code=400, detail="Empty resume file uploaded.")
+
+        content_type = resume_file.content_type or ""
+        filename = resume_file.filename or "resume"
+
+        # Infer content type from extension if browser didn't set it
+        if not content_type or content_type == "application/octet-stream":
+            if filename.lower().endswith(".pdf"):
+                content_type = "application/pdf"
+            elif filename.lower().endswith(".docx"):
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+        # ── Parse resume text ────────────────────────────────────────────────
+        logger.info(f"[ATS] Parsing resume: {filename} ({content_type})")
+        resume_text = parse_resume_file(file_bytes, content_type)
+
+        if not resume_text or len(resume_text.strip()) < 50:
+            raise HTTPException(
+                status_code=422,
+                detail="Could not extract enough text from the resume. "
+                       "Please upload a text-based PDF or DOCX file.",
+            )
+
+        # ── Run LLM optimization pipeline ────────────────────────────────────
+        llm_service = get_llm_service()
+        result = run_ats_optimization(
+            resume_text=resume_text,
+            job_description=job_description,
+            optimization_mode=optimization_mode.lower().strip(),
+            llm_service=llm_service,
+        )
+
+        optimized_resume: str = result["optimized_resume"]
+        ats_report: dict = result["ats_report"]
+        candidate_name: str = result.get("candidate_name", "Candidate")
+
+        # ── Build documents ──────────────────────────────────────────────────
+        formats = [f.strip().lower() for f in output_formats.split(",")]
+        docx_b64 = ""
+        pdf_b64 = ""
+
+        if "docx" in formats:
+            logger.info("[ATS] Building DOCX...")
+            docx_bytes = build_docx(optimized_resume)
+            docx_b64 = base64.b64encode(docx_bytes).decode("utf-8")
+
+        if "pdf" in formats:
+            logger.info("[ATS] Building PDF...")
+            pdf_bytes = build_pdf(optimized_resume)
+            pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        logger.info("[ATS] Optimization complete ✓")
+
+        return {
+            "optimized_resume": optimized_resume,
+            "ats_report": ats_report,
+            "candidate_name": candidate_name,
+            "docx_base64": docx_b64,
+            "pdf_base64": pdf_b64,
+            "feature": "ats_optimization",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"ATS optimization error: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))

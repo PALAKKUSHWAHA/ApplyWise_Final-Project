@@ -19,8 +19,8 @@ const faqs = [
     category: 'Getting Started',
     questions: [
       {
-        question: 'What file formats does ResuMatch support?',
-        answer: 'ResuMatch supports PDF, DOC, DOCX, TXT, JPG, and PNG files. We recommend using PDF or DOCX formats for the best results.',
+        question: 'What file formats does ApplyWise support?',
+        answer: 'ApplyWise supports PDF, DOC, DOCX, TXT, JPG, and PNG files. We recommend using PDF or DOCX formats for the best results.',
       },
       {
         question: 'How do I upload a resume for analysis?',
@@ -75,15 +75,15 @@ const faqs = [
     questions: [
       {
         question: 'What browsers are supported?',
-        answer: 'ResuMatch works on all modern browsers including Chrome, Firefox, Safari, and Edge. We recommend using the latest version for the best experience.',
+        answer: 'ApplyWise works on all modern browsers including Chrome, Firefox, Safari, and Edge. We recommend using the latest version for the best experience.',
       },
       {
         question: 'Why is my file upload failing?',
         answer: 'Check that your file is under 10MB and in a supported format. Also ensure you have a stable internet connection. Try refreshing the page and uploading again.',
       },
       {
-        question: 'Can I use ResuMatch on mobile devices?',
-        answer: 'Yes, ResuMatch is fully responsive and works on mobile devices. However, for the best experience, we recommend using a desktop or tablet.',
+        question: 'Can I use ApplyWise on mobile devices?',
+        answer: 'Yes, ApplyWise is fully responsive and works on mobile devices. However, for the best experience, we recommend using a desktop or tablet.',
       },
     ],
   },
@@ -107,7 +107,7 @@ const quickActions = [
   {
     icon: Zap,
     title: 'Quick Tutorial',
-    description: 'Learn how to use ResuMatch',
+    description: 'Learn how to use ApplyWise',
     action: 'Watch Tutorial',
     href: '#tutorial',
   },
@@ -137,10 +137,10 @@ export default function Help() {
   return (
     <>
       <Head>
-        <title>Help & FAQ - ResuMatch</title>
+        <title>Help & FAQ - ApplyWise</title>
         <meta 
           name="description" 
-          content="Get help with ResuMatch. Find answers to frequently asked questions about resume analysis, file uploads, scoring, and more." 
+          content="Get help with ApplyWise. Find answers to frequently asked questions about resume analysis, file uploads, scoring, and more." 
         />
       </Head>
 
@@ -295,7 +295,7 @@ export default function Help() {
                 </h3>
                 <p className="text-gray-600 mb-6 md:mb-8 max-w-2xl mx-auto text-sm md:text-base leading-relaxed px-4">
                   Can't find what you're looking for? Our support team is here to help 
-                  you get the most out of ResuMatch.
+                  you get the most out of ApplyWise.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center max-w-md mx-auto">
                   <motion.a

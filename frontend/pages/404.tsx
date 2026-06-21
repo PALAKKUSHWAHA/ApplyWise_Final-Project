@@ -10,7 +10,7 @@ export default function Custom404() {
   return (
     <>
       <Head>
-        <title>Page Not Found - ResuMatch</title>
+        <title>Page Not Found - ApplyWise</title>
         <meta name="description" content="The page you're looking for doesn't exist." />
       </Head>
 
@@ -85,7 +85,7 @@ export default function Custom404() {
                   href="/about" 
                   className="p-4 rounded-lg border hover:border-primary-300 hover:bg-primary-50 transition-colors duration-200"
                 >
-                  <h3 className="font-medium text-gray-900">About ResuMatch</h3>
+                  <h3 className="font-medium text-gray-900">About ApplyWise</h3>
                   <p className="text-sm text-gray-600">Learn about our platform</p>
                 </Link>
                 

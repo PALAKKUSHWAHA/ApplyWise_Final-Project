@@ -84,7 +84,7 @@ export default function FileUpload({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          {...getRootProps()}
+          {...(getRootProps() as any)}
           className={`
             relative border-2 border-dashed rounded-2xl p-6 md:p-8 text-center cursor-pointer transition-all duration-300 h-full min-h-[280px] md:min-h-[320px] flex items-center justify-center
             ${isDragActive 

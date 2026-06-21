@@ -103,7 +103,7 @@ export default function Analyze() {
   return (
     <>
       <Head>
-        <title>Analyze Resume Match - ResuMatch</title>
+        <title>Analyze Resume Match - ApplyWise</title>
         <meta 
           name="description" 
           content="Upload your resume and job description to get AI-powered compatibility analysis with detailed scoring and recommendations." 

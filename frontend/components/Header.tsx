@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Menu, X, Home, BarChart3, HelpCircle, Info } from 'lucide-react';
+import { BookOpen, Menu, X, Home, BarChart3, HelpCircle, Info, MessageSquare } from 'lucide-react';
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Analyze', href: '/analyze', icon: BarChart3 },
+  { name: 'AI Assistant', href: '/ai-assistant', icon: MessageSquare },
   { name: 'About', href: '/about', icon: Info },
   { name: 'Help', href: '/help', icon: HelpCircle },
 ];
