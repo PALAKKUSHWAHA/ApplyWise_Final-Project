@@ -1,3 +1,4 @@
+<img width="1920" height="1080" alt="Untitled design (1)" src="https://github.com/user-attachments/assets/1faef2ad-5dbc-47bf-8fcf-b13c3ef0a7ee" />
 # ApplyWise 🎯
 🚀 **Live Link:** [apply-wise-final-project.vercel.app](https://apply-wise-final-project.vercel.app)  
 ⚡ **Latest Deployment:** [apply-wise-final-project-259n4edvb-palakkushwahas-projects.vercel.app](https://apply-wise-final-project-259n4edvb-palakkushwahas-projects.vercel.app)
